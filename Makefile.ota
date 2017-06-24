@@ -21,8 +21,8 @@ TARGET_BIN	:=  $(TARGET_BIN_USR1) $(TARGET_BIN_USR2)
 TARGET_OTAFILE := $(addprefix $(BUILD_BASE)/,$(TARGET).ota)
 
 
-BLANKPOS="$$(printf "0x%X" $$(($(ESP_SPI_FLASH_SIZE_K)*512-0x2000)))"
-INITDATAPOS="$$(printf "0x%X" $$(($(ESP_SPI_FLASH_SIZE_K)*512-0x4000)))"
+#BLANKPOS="$$(printf "0x%X" $$(($(ESP_SPI_FLASH_SIZE_K)*512-0x2000)))"
+#INITDATAPOS="$$(printf "0x%X" $$(($(ESP_SPI_FLASH_SIZE_K)*512-0x4000)))"
 
 #Convert SPI size into arg for appgen. Format: no=size
 FLASH_MAP_CONV:=0:512 2:1024 5:2048 6:4096
@@ -64,6 +64,16 @@ libesphttpd/mkupgimg/mkupgimg: libesphttpd/mkupgimg
 flash: $(TARGET_OUT) $(FW_BASE)
 	$(Q) $(ESPTOOL) $(ESPTOOL_OPTS) write_flash $(ESPTOOL_FLASHDEF) 0x00000 $(SDK_BASE)/bin/boot_v1.6.bin 0x1000 $(TARGET_BIN_USR1)
 
+# System parameter area is the last 16KB of flash
+# 512KB flash - system parameter area starts from 0x7C000 
+# 	download blank.bin to 0x7E000 as initialization.
+# 1024KB flash - system parameter area starts from 0xFC000 
+# 	download blank.bin to 0xFE000 as initialization.
+# 2048KB flash - system parameter area starts from 0x1FC000 
+# 	download blank.bin to 0x1FE000 as initialization.
+# 4096KB flash - system parameter area starts from 0x3FC000 
+# 	download blank.bin to 0x3FE000 as initialization.
+# ===============================================================
 flashinit:
-	$(Q) $(ESPTOOL) $(ESPTOOL_OPTS) write_flash $(ESPTOOL_FLASHDEF) $(BLANKPOS) $(SDK_BASE)/bin/blank.bin $(INITDATAPOS) $(SDK_BASE)/bin/esp_init_data_default.bin
+	$(Q) $(ESPTOOL) $(ESPTOOL_OPTS) write_flash $(ESPTOOL_FLASHDEF) 0xFE000 $(SDK_BASE)/bin/blank.bin 0xFC000 $(SDK_BASE)/bin/esp_init_data_default.bin
 
